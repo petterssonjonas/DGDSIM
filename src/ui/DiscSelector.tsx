@@ -45,7 +45,15 @@ export function DiscSelector() {
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-        Disc Selection
+        Disc Selection{' '}
+        <a
+          href="https://github.com/cdleveille/discit-api"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-normal text-blue-500 hover:text-blue-600 normal-case tracking-normal"
+        >
+          via DiscIt
+        </a>
       </h3>
 
       {/* Selected disc display */}

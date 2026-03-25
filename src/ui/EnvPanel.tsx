@@ -1,11 +1,12 @@
 import { useAppStore } from '@/store/app-store';
+import { Tooltip } from './Tooltip';
 
 export function EnvPanel() {
   const windSpeedMps = useAppStore((s) => s.windSpeedMps);
   const windHeadingDeg = useAppStore((s) => s.windHeadingDeg);
   const altitudeM = useAppStore((s) => s.altitudeM);
   const tempCelsius = useAppStore((s) => s.tempCelsius);
-  const humidityPercent = useAppStore((s) => s.humidityPercent);
+  const groundElevationM = useAppStore((s) => s.groundElevationM);
   const setEnvironment = useAppStore((s) => s.setEnvironment);
 
   const windSpeedKmh = Math.round(windSpeedMps * 3.6);
@@ -19,6 +20,7 @@ export function EnvPanel() {
 
       <Slider
         label={`Wind: ${windSpeedMps.toFixed(1)} m/s (${windSpeedKmh} km/h)`}
+        tooltip="Wind speed. Headwind adds lift and distance to overstable discs. Tailwind reduces effective airspeed."
         min={0}
         max={15}
         step={0.5}
@@ -27,8 +29,9 @@ export function EnvPanel() {
       />
 
       <div>
-        <label className="text-xs text-slate-500">
+        <label className="text-xs text-slate-500 flex items-center">
           Wind Direction: {windHeadingDeg}° ({windDir})
+          <Tooltip text="0° = headwind (into the throw), 90° = crosswind from right, 180° = tailwind, 270° = crosswind from left." />
         </label>
         <div className="flex items-center gap-2 mt-1">
           <input
@@ -48,6 +51,7 @@ export function EnvPanel() {
 
       <Slider
         label={`Altitude: ${altitudeM}m (${Math.round(altitudeM * 3.281)}ft)`}
+        tooltip="Elevation above sea level. Higher altitude = thinner air = less lift and drag = discs fly farther but less predictably."
         min={0}
         max={3000}
         step={50}
@@ -57,6 +61,7 @@ export function EnvPanel() {
 
       <Slider
         label={`Temperature: ${tempCelsius}°C (${Math.round(tempCelsius * 1.8 + 32)}°F)`}
+        tooltip="Air temperature affects density. Hotter air is thinner — similar effect to higher altitude."
         min={-10}
         max={45}
         step={1}
@@ -64,14 +69,18 @@ export function EnvPanel() {
         onChange={(v) => setEnvironment({ tempCelsius: v })}
       />
 
+      <hr className="border-slate-200" />
+
       <Slider
-        label={`Humidity: ${humidityPercent}%`}
-        min={0}
-        max={100}
-        step={5}
-        value={humidityPercent}
-        onChange={(v) => setEnvironment({ humidityPercent: v })}
+        label={`Ground Elevation: ${groundElevationM > 0 ? '+' : ''}${groundElevationM}m`}
+        tooltip="Height difference from tee to landing zone. Positive = uphill (disc lands sooner). Negative = downhill (disc flies farther)."
+        min={-30}
+        max={30}
+        step={1}
+        value={groundElevationM}
+        onChange={(v) => setEnvironment({ groundElevationM: v })}
       />
+
     </div>
   );
 }
@@ -96,6 +105,7 @@ function WindCompass({ heading }: { heading: number }) {
 
 function Slider({
   label,
+  tooltip,
   min,
   max,
   step,
@@ -103,6 +113,7 @@ function Slider({
   onChange,
 }: {
   label: string;
+  tooltip?: string;
   min: number;
   max: number;
   step: number;
@@ -111,7 +122,10 @@ function Slider({
 }) {
   return (
     <div>
-      <label className="text-xs text-slate-500">{label}</label>
+      <label className="text-xs text-slate-500 flex items-center">
+        {label}
+        {tooltip && <Tooltip text={tooltip} />}
+      </label>
       <input
         type="range"
         min={min}

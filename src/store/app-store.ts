@@ -8,6 +8,8 @@ import type {
   WindConfig,
   SimulationResult,
   Vec3,
+  ThrowType,
+  PlasticType,
 } from '@/physics/types';
 import type { Disc } from '@/data/disc-types';
 import { DISC_DATABASE, getDiscById } from '@/data/discs';
@@ -41,16 +43,20 @@ interface AppState {
   selectedDisc: Disc | null;
 
   // Throw config
-  velocityMps: number;        // 15-35 m/s
+  velocityMps: number;        // 12-38 m/s
   hyzerAngleDeg: number;      // -30 to +30
-  launchAngleDeg: number;     // 0 to 20
-  releaseHeightM: number;     // 0.5 to 1.8
+  launchAngleDeg: number;     // -5 to 25
+  noseAngleDeg: number;       // -5 to +15 (nose up/down relative to flight path)
+  releaseHeightM: number;     // 0.3 to 1.8
   spinLevel: 'low' | 'normal' | 'high';
+  throwType: ThrowType;       // RHBH, RHFH, LHBH, LHFH
+  wobble: number;             // 0-1 off-axis torque
 
   // Disc modifiers
   weightG: number;
   pronouncedDome: boolean;
   wornIn: boolean;
+  plasticType: PlasticType;   // TPE (soft/base) or TPU (hard/premium)
 
   // Environment
   windSpeedMps: number;
@@ -58,6 +64,7 @@ interface AppState {
   altitudeM: number;
   tempCelsius: number;
   humidityPercent: number;
+  groundElevationM: number;   // positive = uphill from tee
 
   // Simulation results
   trajectories: TrajectoryEntry[];
@@ -78,13 +85,17 @@ interface AppState {
     velocityMps: number;
     hyzerAngleDeg: number;
     launchAngleDeg: number;
+    noseAngleDeg: number;
     releaseHeightM: number;
     spinLevel: 'low' | 'normal' | 'high';
+    throwType: ThrowType;
+    wobble: number;
   }>) => void;
   setModifiers: (params: Partial<{
     weightG: number;
     pronouncedDome: boolean;
     wornIn: boolean;
+    plasticType: PlasticType;
   }>) => void;
   setEnvironment: (params: Partial<{
     windSpeedMps: number;
@@ -92,6 +103,7 @@ interface AppState {
     altitudeM: number;
     tempCelsius: number;
     humidityPercent: number;
+    groundElevationM: number;
   }>) => void;
   setNumFlightLines: (n: number) => void;
   runSimulation: () => void;
@@ -127,13 +139,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   velocityMps: 24,
   hyzerAngleDeg: 5,
   launchAngleDeg: 8,
+  noseAngleDeg: 0,
   releaseHeightM: 1.0,
   spinLevel: 'normal',
+  throwType: 'RHBH',
+  wobble: 0,
 
   // Modifiers
   weightG: 175,
   pronouncedDome: false,
   wornIn: false,
+  plasticType: 'TPU',
 
   // Environment
   windSpeedMps: 0,
@@ -141,6 +157,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   altitudeM: 100,
   tempCelsius: 20,
   humidityPercent: 50,
+  groundElevationM: 0,
 
   // Simulation
   trajectories: [],
@@ -190,6 +207,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       weightG: s.weightG,
       pronouncedDome: s.pronouncedDome,
       wornIn: s.wornIn,
+      plasticType: s.plasticType,
     };
     const coeffs = getAeroCoefficients(flight, modifiers);
     const massKg = s.weightG / 1000;
@@ -210,16 +228,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     for (let i = 0; i < numLines; i++) {
       const hyzerRad = (varyAngle(s.hyzerAngleDeg, i, numLines) * Math.PI) / 180;
       const launchRad = (s.launchAngleDeg * Math.PI) / 180;
+      const noseRad = (s.noseAngleDeg * Math.PI) / 180;
 
       const simResult: SimulationResult = simulate(
         {
           velocity: s.velocityMps,
           hyzerRad,
           launchAngleRad: launchRad,
+          noseAngleRad: noseRad,
           throwHeightM: s.releaseHeightM,
           spinMultiplier: spinMultiplier(s.spinLevel),
+          throwType: s.throwType,
+          wobble: s.wobble,
         },
-        { coeffs, massKg, rho, wind },
+        { coeffs, massKg, rho, wind, groundElevationM: s.groundElevationM },
         0, // throw heading: 0 = straight down fairway
       );
 

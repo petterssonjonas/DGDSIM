@@ -6,11 +6,11 @@ import type { FlightNumbers, ModifierParams, WindConfig, ThrowConfig, SimParams 
 
 // Helper to create standard sim params for a disc
 function makeParams(flight: FlightNumbers): SimParams {
-  const modifiers: ModifierParams = { weightG: 175, pronouncedDome: false, wornIn: false };
+  const modifiers: ModifierParams = { weightG: 175, pronouncedDome: false, wornIn: false, plasticType: 'TPU' };
   const coeffs = getAeroCoefficients(flight, modifiers);
   const rho = airDensityFromConditions(100, 20, 0.5);
   const wind: WindConfig = { speedMps: 0, headingDeg: 0, gustFactor: 0 };
-  return { coeffs, massKg: 0.175, rho, wind };
+  return { coeffs, massKg: 0.175, rho, wind, groundElevationM: 0 };
 }
 
 function makeThrow(overrides: Partial<ThrowConfig> = {}): ThrowConfig {
@@ -18,8 +18,11 @@ function makeThrow(overrides: Partial<ThrowConfig> = {}): ThrowConfig {
     velocity: 24,
     hyzerRad: 0.087, // ~5 degrees hyzer
     launchAngleRad: 0.14, // ~8 degrees up
+    noseAngleRad: 0,
     throwHeightM: 1.0,
     spinMultiplier: 1.0,
+    throwType: 'RHBH',
+    wobble: 0,
     ...overrides,
   };
 }
@@ -102,18 +105,18 @@ describe('Flight Simulation', () => {
     // more drag deceleration. At moderate speeds heavy discs can carry further
     // due to higher momentum. The key is that weight has a measurable effect.
     const flight: FlightNumbers = { speed: 7, glide: 5, turn: -1, fade: 2 };
-    const heavyMods: ModifierParams = { weightG: 180, pronouncedDome: false, wornIn: false };
-    const lightMods: ModifierParams = { weightG: 150, pronouncedDome: false, wornIn: false };
+    const heavyMods: ModifierParams = { weightG: 180, pronouncedDome: false, wornIn: false, plasticType: 'TPU' };
+    const lightMods: ModifierParams = { weightG: 150, pronouncedDome: false, wornIn: false, plasticType: 'TPU' };
     const rho = airDensityFromConditions(100, 20, 0.5);
     const wind: WindConfig = { speedMps: 0, headingDeg: 0, gustFactor: 0 };
 
     const heavyResult = simulate(makeThrow(), {
       coeffs: getAeroCoefficients(flight, heavyMods),
-      massKg: 0.180, rho, wind,
+      massKg: 0.180, rho, wind, groundElevationM: 0,
     });
     const lightResult = simulate(makeThrow(), {
       coeffs: getAeroCoefficients(flight, lightMods),
-      massKg: 0.150, rho, wind,
+      massKg: 0.150, rho, wind, groundElevationM: 0,
     });
     // Weight should produce a meaningful distance difference (>1m)
     const diff = Math.abs(heavyResult.totalDistanceM - lightResult.totalDistanceM);
@@ -137,7 +140,7 @@ describe('Atmosphere', () => {
 describe('Coefficients', () => {
   it('higher glide should produce higher CL0', () => {
     const flight: FlightNumbers = { speed: 7, glide: 3, turn: 0, fade: 2 };
-    const mods: ModifierParams = { weightG: 175, pronouncedDome: false, wornIn: false };
+    const mods: ModifierParams = { weightG: 175, pronouncedDome: false, wornIn: false, plasticType: 'TPU' };
     const low = getAeroCoefficients({ ...flight, glide: 2 }, mods);
     const high = getAeroCoefficients({ ...flight, glide: 6 }, mods);
     expect(high.CL0).toBeGreaterThan(low.CL0);
@@ -145,7 +148,7 @@ describe('Coefficients', () => {
 
   it('more negative turn should produce more negative CM0', () => {
     const flight: FlightNumbers = { speed: 9, glide: 5, turn: 0, fade: 2 };
-    const mods: ModifierParams = { weightG: 175, pronouncedDome: false, wornIn: false };
+    const mods: ModifierParams = { weightG: 175, pronouncedDome: false, wornIn: false, plasticType: 'TPU' };
     const stable = getAeroCoefficients({ ...flight, turn: 0 }, mods);
     const understable = getAeroCoefficients({ ...flight, turn: -3 }, mods);
     expect(understable.CM0).toBeLessThan(stable.CM0);

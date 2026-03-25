@@ -15,7 +15,7 @@
  * - Rotation: spin (rad/s), rollRate, pitchRate (rad/s)
  */
 
-import type { Vec3, ThrowConfig, SimParams, SimulationResult } from './types';
+import type { Vec3, ThrowConfig, SimParams, SimulationResult, ThrowType } from './types';
 import { applyWind } from './wind';
 import {
   DISC_DIAMETER_M,
@@ -28,6 +28,17 @@ import {
   BASE_SPIN_RPS,
   momentOfInertia,
 } from './constants';
+
+/**
+ * Determine spin sign based on throw type.
+ * RHBH and LHFH produce clockwise spin (positive, viewed from above).
+ * RHFH and LHBH produce counter-clockwise spin (negative).
+ * Spin sign affects gyroscopic precession direction, which determines
+ * whether the disc turns right or left at high speed.
+ */
+function spinSign(throwType: ThrowType): number {
+  return (throwType === 'RHBH' || throwType === 'LHFH') ? 1 : -1;
+}
 
 /** State vector: [x, y, z, vx, vy, vz, roll, pitch, spin, rollRate, pitchRate] */
 type State = readonly [
@@ -110,7 +121,7 @@ function liftDirection(velocity: Vec3, roll: number, pitch: number): Vec3 {
  */
 function derivative(
   state: State,
-  params: SimParams,
+  params: SimParams & { _wobbleDecayFactor?: number },
   throwHeadingDeg: number
 ): State {
   const [, , , vx, vy, vz, roll, pitch, spin, rollRate, pitchRate] = state;
@@ -122,13 +133,16 @@ function derivative(
   const relativeVel = applyWind(groundVel, params.wind, throwHeadingDeg);
   const v = norm(relativeVel);
 
+  // Spin decay factor (may be enhanced by wobble/OAT)
+  const decayFactor = params._wobbleDecayFactor ?? SPIN_DECAY_FACTOR;
+
   // If disc is nearly stationary, minimal aerodynamic forces
   if (v < VELOCITY_THRESHOLD) {
     return [
       vx, vy, vz,
-      0, -GRAVITY_MPS2, 0,
+      0, 0, -GRAVITY_MPS2,
       rollRate, pitchRate,
-      spin * SPIN_DECAY_FACTOR,
+      spin * decayFactor,
       0, 0,
     ] as State;
   }
@@ -171,8 +185,8 @@ function derivative(
   const spinMag = Math.max(spin, 1); // Avoid division by zero
   const gyroPrec = M / (J * spinMag);
 
-  // Spin decay: proportional to current spin
-  const spinDelta = -spin * (1 - SPIN_DECAY_FACTOR);
+  // Spin decay: proportional to current spin (wobble accelerates this)
+  const spinDelta = -spin * (1 - decayFactor);
 
   // Roll and pitch rate changes due to gyroscopic precession
   const rollRateAccel = gyroPrec * Math.cos(pitch);
@@ -199,7 +213,7 @@ function derivative(
  */
 function rk4Step(
   state: State,
-  params: SimParams,
+  params: SimParams & { _wobbleDecayFactor?: number },
   dt: number,
   throwHeadingDeg: number
 ): State {
@@ -286,13 +300,23 @@ export function simulate(
   params: SimParams,
   throwHeadingDeg: number = 0
 ): SimulationResult {
-  const { velocity: v0, hyzerRad, launchAngleRad, throwHeightM, spinMultiplier } = config;
+  const {
+    velocity: v0,
+    hyzerRad,
+    launchAngleRad,
+    noseAngleRad = 0,
+    throwHeightM,
+    spinMultiplier,
+    throwType = 'RHBH',
+    wobble = 0,
+  } = config;
 
   // Initial state setup
   // Hyzer is roll (positive = right edge up for RHBH)
-  // Launch angle is pitch (positive = nose up)
+  // Pitch combines launch angle (trajectory) + nose angle (disc pitch relative to trajectory)
+  // noseAngleRad > 0 means nose up relative to flight path → higher effective AoA
   const roll0 = hyzerRad;
-  const pitch0 = -launchAngleRad;
+  const pitch0 = -(launchAngleRad + noseAngleRad);
 
   // Initial velocity components (in throw direction frame)
   const vx0 = v0 * Math.cos(launchAngleRad);
@@ -301,7 +325,12 @@ export function simulate(
 
   // Initial spin rate (revolutions per second -> rad/s)
   // 1 revolution = 2π radians
-  const spin0 = BASE_SPIN_RPS * spinMultiplier * 2 * Math.PI;
+  // Spin sign determines precession direction (and therefore turn/fade direction)
+  const spin0 = spinSign(throwType) * BASE_SPIN_RPS * spinMultiplier * 2 * Math.PI;
+
+  // Wobble enhances spin decay: off-axis torque bleeds rotational energy
+  // wobble=0 → normal decay, wobble=1 → ~3x faster spin loss
+  const wobbleDecayFactor = SPIN_DECAY_FACTOR * (1 - wobble * 0.003);
 
   const initialState: State = [
     0, 0, throwHeightM,
@@ -310,20 +339,28 @@ export function simulate(
     0, 0,
   ];
 
+  // Ground elevation for landing detection (positive = uphill from tee)
+  const groundZ = params.groundElevationM ?? 0;
+
   // Collect flight path
   const path: Vec3[] = [{ x: 0, y: 0, z: throwHeightM }];
   let state = initialState;
   let time = 0;
 
+  // Override spin decay in params for wobble effect
+  const simParams = wobble > 0
+    ? { ...params, _wobbleDecayFactor: wobbleDecayFactor }
+    : params;
+
   // Integrate until landing or max iterations
   for (let i = 0; i < MAX_SIM_ITERATIONS; i++) {
-    state = rk4Step(state, params, SIM_DT_S, throwHeadingDeg);
+    state = rk4Step(state, simParams, SIM_DT_S, throwHeadingDeg);
     time += SIM_DT_S;
 
     path.push({ x: state[0], y: state[1], z: state[2] });
 
-    // Stop if disc lands
-    if (state[2] <= 0) {
+    // Stop if disc hits ground (accounting for elevation)
+    if (state[2] <= groundZ) {
       break;
     }
   }

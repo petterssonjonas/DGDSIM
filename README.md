@@ -8,6 +8,10 @@ A web-based disc golf disc flight simulator that uses real aerodynamic physics t
 
 The simulator connects three systems: a disc database of real discs with their flight numbers, a physics engine that models aerodynamic flight, and a 3D renderer that visualizes the results.
 
+### Disc Database
+
+The disc database contains 1,148 discs from 50+ manufacturers, sourced from the [DiscIt API](https://github.com/cdleveille/discit-api). Each disc includes Speed, Glide, Turn, and Fade flight numbers.
+
 ```mermaid
 flowchart TD
     subgraph Input["User Input"]

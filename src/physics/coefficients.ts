@@ -42,6 +42,16 @@ const WORN_CD_SCALE = 0.92;
 /** Worn-in discs shift moment characteristic slightly understable */
 const WORN_CM_SHIFT = -0.015;
 
+/**
+ * Plastic type modifiers.
+ * TPE (soft/base): slightly less stable, breaks in faster, slightly more drag
+ * TPU (hard/premium): more stable out of the box, maintains stability longer
+ */
+const TPE_CM_SHIFT = -0.008; // Softer plastic = slightly less stable
+const TPE_CD_SCALE = 1.03;   // Softer edges = marginally more drag
+const TPU_CM_SHIFT = 0.005;  // Harder plastic = slightly more overstable
+const TPU_CD_SCALE = 0.98;   // Crisper edges = slightly less drag
+
 // ============================================================================
 // Flight number to coefficient mappers
 // ============================================================================
@@ -147,6 +157,29 @@ function applyWornModifier(coeffs: AeroCoefficients, modifiers: ModifierParams):
   };
 }
 
+/**
+ * Apply plastic type modifier to coefficients.
+ * TPE (base/soft) plastics are slightly less stable and have marginally more drag.
+ * TPU (premium/hard) plastics are slightly more overstable with crisper edges.
+ */
+function applyPlasticModifier(coeffs: AeroCoefficients, modifiers: ModifierParams): AeroCoefficients {
+  if (modifiers.plasticType === 'TPE') {
+    return {
+      ...coeffs,
+      CM0: coeffs.CM0 + TPE_CM_SHIFT,
+      CD0: coeffs.CD0 * TPE_CD_SCALE,
+    };
+  }
+  if (modifiers.plasticType === 'TPU') {
+    return {
+      ...coeffs,
+      CM0: coeffs.CM0 + TPU_CM_SHIFT,
+      CD0: coeffs.CD0 * TPU_CD_SCALE,
+    };
+  }
+  return coeffs;
+}
+
 // ============================================================================
 // Main interface
 // ============================================================================
@@ -175,6 +208,7 @@ export function getAeroCoefficients(
   // Apply modifiers in sequence
   coeffs = applyDomeModifier(coeffs, modifiers);
   coeffs = applyWornModifier(coeffs, modifiers);
+  coeffs = applyPlasticModifier(coeffs, modifiers);
 
   return coeffs;
 }
