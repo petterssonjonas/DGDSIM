@@ -81,6 +81,7 @@ interface AppState {
 
   // Actions
   selectDisc: (discId: string) => void;
+  selectCustomDisc: (flight: FlightNumbers) => void;
   setThrow: (params: Partial<{
     velocityMps: number;
     hyzerAngleDeg: number;
@@ -178,6 +179,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (disc) {
       set({ selectedDiscId: discId, selectedDisc: disc, trajectories: [] });
     }
+  },
+
+  selectCustomDisc: (flight: FlightNumbers) => {
+    const disc = {
+      id: 'custom',
+      name: 'Custom',
+      manufacturer: 'Custom',
+      type: 'distance' as const,
+      speed: flight.speed,
+      glide: flight.glide,
+      turn: flight.turn,
+      fade: flight.fade,
+    };
+    set({ selectedDiscId: 'custom', selectedDisc: disc, trajectories: [] });
   },
 
   setThrow: (params) => set({ ...params, trajectories: [] }),

@@ -6,9 +6,9 @@ interface GroundProps {
   fairwayWidth?: number;
 }
 
-export function Ground({ size = 300, fairwayWidth = 30 }: GroundProps) {
+export function Ground({ size = 250, fairwayWidth = 25 }: GroundProps) {
   const mainGeometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(size, size, 80, 80);
+    const geo = new THREE.PlaneGeometry(size, size, 60, 80);
     const posAttr = geo.getAttribute('position');
     const positions = posAttr.array as Float32Array;
 
@@ -37,9 +37,9 @@ export function Ground({ size = 300, fairwayWidth = 30 }: GroundProps) {
         <meshStandardMaterial color={0x4a7c3f} roughness={0.8} />
       </mesh>
 
-      <mesh position={[size / 4, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[size / 10, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[size * 0.8, fairwayWidth]} />
-        <meshStandardMaterial color={0x5a9c4f} roughness={0.75} />
+        <meshStandardMaterial color={0x5a9c4f} roughness={0.8} />
       </mesh>
     </>
   );

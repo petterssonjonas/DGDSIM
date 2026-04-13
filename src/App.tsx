@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Scene } from '@/scene/Scene';
 import { DiscSelector } from '@/ui/DiscSelector';
 import { ThrowPanel } from '@/ui/ThrowPanel';
@@ -11,31 +11,33 @@ function App() {
   const trajectories = useAppStore((s) => s.trajectories);
   const isAnimating = useAppStore((s) => s.isAnimating);
   const stopAnimation = useAppStore((s) => s.stopAnimation);
-  const runSimulation = useAppStore((s) => s.runSimulation);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Run initial simulation on mount
   useEffect(() => {
-    runSimulation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useAppStore.getState().runSimulation();
   }, []);
 
-  // Get first trajectory points for animation
-  const animatingTrajectory = trajectories.length > 0 ? trajectories[0]!.points : [];
+  const animatingTrajectory = useMemo(
+    () => (trajectories.length > 0 ? trajectories[0]!.points : []),
+    [trajectories],
+  );
 
-  // Map trajectories to scene format
-  const sceneTrajectories = trajectories.map((t) => ({
-    points: t.points,
-    landingPoint: t.landingPoint,
-    totalDistanceM: t.totalDistanceM,
-    maxHeightM: t.maxHeightM,
-    lateralDriftM: t.lateralDriftM,
-    hangTimeS: t.hangTimeS,
-  }));
+  const sceneTrajectories = useMemo(
+    () =>
+      trajectories.map((t) => ({
+        points: t.points,
+        landingPoint: t.landingPoint,
+        totalDistanceM: t.totalDistanceM,
+        maxHeightM: t.maxHeightM,
+        lateralDriftM: t.lateralDriftM,
+        hangTimeS: t.hangTimeS,
+      })),
+    [trajectories],
+  );
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-900">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950">
       {/* 3D Viewport */}
       <div className="flex-1 min-w-0 relative">
         <Scene
@@ -46,31 +48,36 @@ function App() {
         />
 
         {/* Title overlay */}
-        <div className="absolute top-4 left-4 pointer-events-none">
-          <h1 className="text-lg font-bold text-white drop-shadow-lg">
+        <div className="absolute top-4 left-4 pointer-events-none select-none">
+          <div className="text-white font-black text-xl tracking-tight leading-none drop-shadow-lg">
             DGDSIM
-          </h1>
-          <p className="text-xs text-white/70 drop-shadow">
-            Disc Golf Disc Flight Simulator
-          </p>
+          </div>
+          <div className="text-white/40 text-[10px] mt-0.5 tracking-widest uppercase drop-shadow">
+            Flight Simulator
+          </div>
         </div>
 
         {/* Sidebar toggle */}
         <button
           onClick={() => setSidebarOpen((o) => !o)}
-          className="absolute top-4 right-4 z-10 rounded-lg bg-white/90 backdrop-blur px-3 py-1.5 text-sm text-slate-700 shadow hover:bg-white transition-colors"
+          className="absolute top-4 right-4 z-10 rounded-md bg-black/40 backdrop-blur-sm border border-white/10 px-2.5 py-1.5 text-xs text-white/60 hover:text-white hover:border-white/20 hover:bg-black/60 transition-all"
         >
-          {sidebarOpen ? 'Hide Panel' : 'Show Panel'}
+          {sidebarOpen ? 'Hide' : 'Panel'}
         </button>
       </div>
 
       {/* Sidebar */}
       {sidebarOpen && (
-        <div className="w-80 flex-shrink-0 bg-white border-l border-slate-200 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="w-76 flex-shrink-0 bg-zinc-950 border-l border-zinc-800 flex flex-col overflow-hidden">
+          {/* Scrollable panels */}
+          <div className="flex-1 overflow-y-auto">
             <DiscSelector />
             <ThrowPanel />
             <EnvPanel />
+          </div>
+
+          {/* Simulate + results — always visible at bottom */}
+          <div className="border-t border-zinc-800 flex-shrink-0">
             <SimControls />
             <ResultsPanel />
           </div>

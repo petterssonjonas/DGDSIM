@@ -2,81 +2,60 @@ interface BasketProps {
   position?: [number, number, number];
 }
 
-export function Basket({ position = [75, 0, 0] }: BasketProps) {
+export function Basket({ position = [65, 0, 0] }: BasketProps) {
   const poleHeight = 1.5;
-  const cageRadius = 0.3;
-  const cageHeight = 0.6;
-  const bandHeight = 0.9;
-  const bandRadius = 0.5;
+  const plateY = poleHeight / 2;        // 0.75m — mid-pole plate
+  const lowerRingY = plateY + 0.20;     // 0.95m — 20cm above plate, 60cm diam
+  const upperRingY = lowerRingY + 0.50; // 1.45m — 50cm above lower ring, 40cm diam
+  const lowerRingRadius = 0.30;         // 60cm diameter
+  const upperRingRadius = 0.25;
+
+  // Chains: from pole at lower ring height, angled out to upper ring
+  const chainCount = 12;
+  const vertDist = upperRingY - lowerRingY;
+  const horizDist = upperRingRadius;
+  const chainLength = Math.sqrt(vertDist ** 2 + horizDist ** 2);
+  const tiltAngle = Math.atan2(horizDist, vertDist);
 
   return (
     <group position={position}>
-      {/* Base (small concrete pad) */}
-      <mesh position={[0, 0.05, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.4, 0.5, 0.1, 16]} />
-        <meshStandardMaterial
-          color={0x666666}
-          roughness={0.7}
-          metalness={0.1}
-        />
-      </mesh>
-
       {/* Pole */}
-      <mesh
-        position={[0, poleHeight / 2, 0]}
-        castShadow
-        receiveShadow
-      >
-        <cylinderGeometry args={[0.04, 0.04, poleHeight, 8]} />
-        <meshStandardMaterial
-          color={0x777777}
-          roughness={0.5}
-          metalness={0.4}
-        />
+      <mesh position={[0, poleHeight / 2, 0]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, poleHeight, 8]} />
+        <meshStandardMaterial color={0x888888} roughness={0.4} metalness={0.6} />
       </mesh>
 
-      {/* Catching band (torus at mid-height) */}
-      <mesh position={[0, bandHeight, 0]} castShadow receiveShadow>
-        <torusGeometry args={[bandRadius, 0.08, 8, 16]} />
-        <meshStandardMaterial
-          color={0xdd6633}
-          roughness={0.6}
-          metalness={0.2}
-        />
+      {/* Deflector plate at mid-pole */}
+      <mesh position={[0, plateY, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.25, 0.25, 0.02, 16]} />
+        <meshStandardMaterial color={0xaaaaaa} roughness={0.5} metalness={0.4} />
       </mesh>
 
-      {/* Cage/chains zone (cone at top) */}
-      <mesh
-        position={[0, poleHeight - cageHeight / 2, 0]}
-        castShadow
-        receiveShadow
-      >
-        <coneGeometry args={[cageRadius, cageHeight, 12]} />
-        <meshStandardMaterial
-          color={0xffd700}
-          roughness={0.4}
-          metalness={0.3}
-        />
+      {/* Lower ring — thin, 60cm diam, horizontal */}
+      <mesh position={[0, lowerRingY, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <torusGeometry args={[lowerRingRadius, 0.015, 8, 32]} />
+        <meshStandardMaterial color={0x666666} roughness={0.6} metalness={0.2} />
       </mesh>
 
-      {/* Chain strands visual - simple cylinders from basket ring to cone */}
-      {[0, 1, 2, 3].map((i) => {
-        const angle = (i / 4) * Math.PI * 2;
-        const x = Math.cos(angle) * (bandRadius - 0.1);
-        const z = Math.sin(angle) * (bandRadius - 0.1);
+      {/* Upper ring — thicker, 40cm diam, horizontal */}
+      <mesh position={[0, upperRingY, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <torusGeometry args={[upperRingRadius, 0.020, 8, 32]} />
+        <meshStandardMaterial color={0xF2D000} roughness={0.6} metalness={0.2} />
+      </mesh>
+
+      {/* Chains: bottom at pole (lower ring height), angled up to upper ring perimeter */}
+      {Array.from({ length: chainCount }, (_, i) => {
+        const a = (i / chainCount) * Math.PI * 2;
         return (
-          <mesh
-            key={`chain-${i}`}
-            position={[x, bandHeight, z]}
-            castShadow
-          >
-            <cylinderGeometry args={[0.01, 0.01, cageHeight / 2, 4]} />
-            <meshStandardMaterial
-              color={0xcccccc}
-              roughness={0.5}
-              metalness={0.6}
-            />
-          </mesh>
+          <group key={`chain-${i}`} rotation={[0, a, 0]}>
+            <mesh
+              position={[horizDist / 1.8, (lowerRingY + upperRingY) / 2, 0]}
+              rotation={[0, 0, -tiltAngle]}
+            >
+              <cylinderGeometry args={[0.004, 0.004, chainLength, 3]} />
+              <meshStandardMaterial color={0xbbbbbb} roughness={0.4} metalness={0.7} />
+            </mesh>
+          </group>
         );
       })}
     </group>

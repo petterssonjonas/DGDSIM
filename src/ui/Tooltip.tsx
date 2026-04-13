@@ -1,19 +1,16 @@
 import { useState } from 'react';
 
-/**
- * Small info icon with hover tooltip for explaining UI controls.
- */
 export function Tooltip({ text }: { text: string }) {
   const [show, setShow] = useState(false);
 
   return (
     <span
-      className="relative inline-flex ml-1 cursor-help"
+      className="relative inline-flex ml-0.5 cursor-help"
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >
       <svg
-        className="w-3.5 h-3.5 text-slate-400 hover:text-blue-500 transition-colors"
+        className="w-3 h-3 text-zinc-600 hover:text-zinc-400 transition-colors"
         viewBox="0 0 16 16"
         fill="currentColor"
       >
@@ -23,9 +20,9 @@ export function Tooltip({ text }: { text: string }) {
         />
       </svg>
       {show && (
-        <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 px-2.5 py-1.5 text-xs text-white bg-slate-800 rounded-md shadow-lg leading-relaxed pointer-events-none">
+        <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 px-3 py-2 text-[11px] text-zinc-300 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl leading-relaxed pointer-events-none">
           {text}
-          <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-slate-800" />
+          <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-[5px] border-transparent border-t-zinc-800" />
         </span>
       )}
     </span>

@@ -4,7 +4,7 @@
  */
 
 /** Disc radius in meters (~27cm diameter) */
-export const DISC_RADIUS_M = 0.135;
+export const DISC_RADIUS_M = 0.106; // ~21.2cm diameter for golf discs
 
 /** Disc diameter in meters */
 export const DISC_DIAMETER_M = 2 * DISC_RADIUS_M;

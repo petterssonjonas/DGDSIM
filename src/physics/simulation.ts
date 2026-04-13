@@ -119,7 +119,7 @@ function liftDirection(velocity: Vec3, roll: number, pitch: number): Vec3 {
  * @param throwHeadingDeg Reference heading for wind calculation
  * @returns State derivatives
  */
-function derivative(
+export function derivative(
   state: State,
   params: SimParams & { _wobbleDecayFactor?: number },
   throwHeadingDeg: number
@@ -189,8 +189,8 @@ function derivative(
   const spinDelta = -spin * (1 - decayFactor);
 
   // Roll and pitch rate changes due to gyroscopic precession
-  const rollRateAccel = gyroPrec * Math.cos(pitch);
-  const pitchRateAccel = -gyroPrec * Math.sin(pitch);
+  const rollRateAccel = gyroPrec * Math.cos(pitch) - 2.0 * rollRate; // Just roll damping
+  const pitchRateAccel = -gyroPrec * Math.sin(pitch) - 2.0 * pitchRate; // Just pitch damping
 
   return [
     vx, vy, vz,

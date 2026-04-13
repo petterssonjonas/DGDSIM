@@ -13,12 +13,12 @@ export function SimControls() {
   const maxFlightLines = useAppStore((s) => s.maxFlightLines);
 
   return (
-    <div className="space-y-3">
-      {/* Flight lines control */}
+    <div className="px-4 py-3 space-y-2">
+      {/* Premium: flight lines control */}
       {isPremium && (
         <div>
-          <label className="text-xs text-slate-500">
-            Flight Lines: {numFlightLines}
+          <label className="text-[10px] text-zinc-500 uppercase tracking-widest">
+            Flight Lines — {numFlightLines}
           </label>
           <input
             type="range"
@@ -26,16 +26,19 @@ export function SimControls() {
             max={maxFlightLines}
             step={1}
             value={numFlightLines}
-            onChange={(e) => setNumFlightLines(parseInt(e.target.value))}
-            className="w-full h-1.5 mt-1 accent-blue-500"
+            onChange={(e) => setNumFlightLines(parseInt(e.target.value, 10))}
+            className="w-full mt-1"
           />
         </div>
       )}
 
+      {/* Free tier notice */}
       {!isPremium && (
-        <div className="rounded bg-amber-50 border border-amber-200 p-2 text-xs text-amber-700">
-          Free tier: 1 flight line per simulation.
-          <button className="ml-1 underline font-medium">Upgrade for up to 10</button>
+        <div className="flex items-center justify-between rounded-md bg-amber-500/5 border border-amber-500/15 px-3 py-1.5">
+          <span className="text-[10px] text-amber-500/80">Free — 1 flight line</span>
+          <button className="text-[10px] text-amber-400 hover:text-amber-300 font-medium transition-colors">
+            Upgrade →
+          </button>
         </div>
       )}
 
@@ -43,21 +46,19 @@ export function SimControls() {
       <button
         onClick={runSimulation}
         disabled={isSimulating}
-        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 transition-colors"
+        className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-40 px-4 py-2.5 text-sm font-bold text-white transition-colors shadow-lg shadow-emerald-900/30"
       >
         {isSimulating ? 'Simulating...' : 'Simulate Flight'}
       </button>
 
       {/* Animation controls */}
       {trajectories.length > 0 && (
-        <div className="flex gap-2">
-          <button
-            onClick={isAnimating ? stopAnimation : startAnimation}
-            className="flex-1 rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-          >
-            {isAnimating ? 'Stop' : 'Play Animation'}
-          </button>
-        </div>
+        <button
+          onClick={isAnimating ? stopAnimation : startAnimation}
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+        >
+          {isAnimating ? '■ Stop Animation' : '▶ Play Animation'}
+        </button>
       )}
     </div>
   );

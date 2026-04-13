@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, ContactShadows } from '@react-three/drei';
-import { ReactNode, Suspense } from 'react';
+import { ReactNode, Suspense, useMemo } from 'react';
 import { useControls } from 'leva';
 import { Ground } from './environment/Ground';
 import { TeePad } from './environment/TeePad';
@@ -81,18 +81,22 @@ export function Scene({
   children,
 }: SceneProps) {
   // Map to FlightPaths format
-  const flightPathData = trajectories.map((t, i) => ({
-    id: `traj-${i}`,
-    points: t.points,
-    color: FLIGHT_COLORS[i % FLIGHT_COLORS.length]!,
-    isSelected: i === 0,
-    landingPoint: t.landingPoint,
-  }));
+  const flightPathData = useMemo(
+    () =>
+      trajectories.map((t, i) => ({
+        id: `traj-${i}`,
+        points: t.points,
+        color: FLIGHT_COLORS[i % FLIGHT_COLORS.length]!,
+        isSelected: i === 0,
+        landingPoint: t.landingPoint,
+      })),
+    [trajectories],
+  );
 
   return (
     <Canvas
       camera={{
-        position: [-3, 2, 0],
+        position: [-78, 2, 0],
         fov: 50,
       }}
       shadows
@@ -106,22 +110,25 @@ export function Scene({
         <SceneLighting />
 
         <Ground />
-        <TeePad />
         <Basket position={[75, 0, 0]} />
-        <Trees seed={42} count={40} />
-        <DistanceMarkers maxDistance={150} interval={25} />
+        <group position={[-75, 0, 0]}>
+          <TeePad position={[0, 0.1, 0]} />
+          <Thrower position={[0, 0, 0]} />
+          <FlightPaths trajectories={flightPathData} />
+          <DistanceMarkers maxDistance={150} interval={25} />
+          {isAnimating && animatingTrajectory.length > 0 && (
+            <AnimatedDisc
+              trajectoryPoints={animatingTrajectory}
+              isAnimating={isAnimating}
+              onComplete={onAnimationComplete}
+            />
+          )}
+        </group>
 
-        <FlightPaths trajectories={flightPathData} />
+        <Trees seed={42} count={400} />
 
-        {isAnimating && animatingTrajectory.length > 0 && (
-          <AnimatedDisc
-            trajectoryPoints={animatingTrajectory}
-            isAnimating={isAnimating}
-            onComplete={onAnimationComplete}
-          />
-        )}
 
-        <Thrower position={[0, 0, 0]} />
+
 
         {children}
       </Suspense>
@@ -132,7 +139,7 @@ export function Scene({
         maxPolarAngle={Math.PI / 2 - 0.05}
         minDistance={2}
         maxDistance={200}
-        target={[40, 0, 0]}
+        target={[-35, 0, 0]}
       />
     </Canvas>
   );

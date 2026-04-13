@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 
 interface AnimatedDiscProps {
   /** Trajectory points in physics coordinates: X=downrange, Y=lateral, Z=up */
@@ -25,12 +25,17 @@ export function AnimatedDisc({
   const groupRef = useRef<THREE.Group>(null);
   const discRef = useRef<THREE.Mesh>(null);
   const progressRef = useRef(0);
-  const [hasCompleted, setHasCompleted] = useState(false);
+  const hasCompletedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
 
   useEffect(() => {
     progressRef.current = 0;
-    setHasCompleted(false);
-  }, [isAnimating]);
+    hasCompletedRef.current = false;
+  }, [isAnimating, trajectoryPoints]);
 
   useFrame((_state, delta) => {
     if (!isAnimating || !groupRef.current || !discRef.current || trajectoryPoints.length < 2) {
@@ -45,9 +50,9 @@ export function AnimatedDisc({
 
     if (progressRef.current >= 1) {
       progressRef.current = 1;
-      if (!hasCompleted) {
-        setHasCompleted(true);
-        onComplete?.();
+      if (!hasCompletedRef.current) {
+        hasCompletedRef.current = true;
+        onCompleteRef.current?.();
       }
     }
 
